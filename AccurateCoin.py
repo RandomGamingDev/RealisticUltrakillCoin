@@ -115,3 +115,5 @@ for t in f_range(0, coin.get_time_in_air(), coin.get_time_in_air() / (num_steps 
 	obj.keyframe_insert("rotation_euler", frame=i)
 
 	i += 1
+
+# x and y rotation
