@@ -1,5 +1,5 @@
 # give Python access to Blender's functionality
-import bpy
+#import bpy
 import math
 
 
@@ -11,7 +11,7 @@ def f_range(start, stop, increment):
 		yield start
 		start += increment
 
-# quick 'n dirty vec class
+# quick 'n dirty vec classes
 class Vec2:
 	def __init__(self, x: float, y: float) -> None:
 		self.x = x
@@ -28,6 +28,29 @@ class Vec2:
 	
 	def __str__(self) -> str:
 		return f"({ self.x }, { self.y })"
+class Vec3:
+	def __init__(self, x: float, y: float, z: float) -> None:
+		self.x = x
+		self.y = y
+		self.z = z
+
+	def get_xy(self):
+		return Vec2(self.x, self.y)
+
+	def get_yz(self):
+		return Vec2(self.y, self.z)
+	
+	def get_xz(self):
+		return Vec2(self.x, self.z)
+
+	def __add__(self, o):
+		return Vec3(self.x + o.x, self.y + o.y, self.z + o.z)
+
+	def __sub__(self, o):
+		return Vec3(self.x - o.x, self.y - o.y, self.z - o.z)
+	
+	def __str__(self) -> str:
+		return f"({ self.x }, { self.y }, { self.z })"
 
 class Coin:
 	def __init__(
@@ -50,7 +73,7 @@ class Coin:
 
 	# Projectile Motion
 
-	def get_starting_pot_y_energy(self) -> float: # J
+	def get_starting_y_energy(self) -> float: # J
 		return self.i_pos.y * self.gravity + self.i_vel.y ** 2 / 2
 
 	def get_max_y(self) -> float: # m
@@ -91,16 +114,17 @@ class Coin:
 		return (self.get_laser_out_angle() + self.get_laser_in_angle()) / 2
 	
 	def get_i_angular_vel(self) -> float: # r / s
-		return self.i_vel.x ** 2 * (self.get_reflection_angle() - self.i_angle) / (self.reflection_x - self.i_pos.x)
+		return self.i_vel.x ** 2 * (self.get_reflection_angle() - self.i_angle.x) / (self.reflection_x - self.i_pos.x)
 	
 	# Combined
 	def get_rotation_at_time(self, t) -> float: # r
-		return self.i_angle + t * self.get_i_angular_vel() / self.i_vel.x
+		return self.i_angle.x + t * self.get_i_angular_vel() / self.i_vel.x
 
 
 
-coin = Coin(9.8, Vec2(0.555, 1.964), Vec2(2.47, 3.062), -4.5, Vec2(0.403, 1.438), 2.12, Vec2(3.83, 1.425))
+coin = Coin(9.8, Vec2(0.555, 1.964), Vec2(2.47, 3.062), Vec2(-4.5, 0), Vec2(0.403, 1.438), 2.12, Vec2(3.83, 1.425))
 
+"""
 # get a reference to the currently active object
 obj = bpy.context.active_object.copy()
 bpy.context.collection.objects.link(obj)
@@ -117,3 +141,4 @@ for t in f_range(0, coin.get_time_in_air(), coin.get_time_in_air() / (num_steps 
 	i += 1
 
 # x and y rotation
+"""
