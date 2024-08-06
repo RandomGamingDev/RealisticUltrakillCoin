@@ -1,8 +1,8 @@
 # give Python access to Blender's functionality
-#import bpy
+import bpy
 import math
-
-
+import mathutils
+from mathutils import Euler, Vector
 
 in_range = lambda n, l, h: l <= n <= h or h <= n <= l
 
@@ -80,7 +80,7 @@ class Coin:
 		return self.i_pos.y * self.gravity + self.i_vel.y ** 2 / 2
 
 	def get_max_y(self) -> float: # m
-		return self.get_starting_pot_y_energy() / self.gravity
+		return self.get_starting_y_energy() / self.gravity
 
 	def get_time_in_air(self) -> float: # s
 		return self.i_vel.y / self.gravity + math.sqrt(2 * self.get_max_y() / self.gravity)
@@ -159,10 +159,9 @@ class Coin:
 
 
 coin = Coin(9.8, Vec3(0.555, 1.964, 0.555), Vec3(2.47, 3.062, 2.47), Vec3(-4.5, 0, -4.5), Vec3(0.403, 1.438, 0.403), 2.12, Vec3(3.83, 1.425, 3.83))
-print(coin.get_x_rotation_at_time(1))
-print(coin.get_z_rotation_at_time(1))
+#print(coin.get_x_rotation_at_time(1))
+#print(coin.get_z_rotation_at_time(1))
 
-"""
 # get a reference to the currently active object
 obj = bpy.context.active_object.copy()
 bpy.context.collection.objects.link(obj)
@@ -170,14 +169,14 @@ bpy.context.collection.objects.link(obj)
 i = 1
 num_steps = 30
 for t in f_range(0, coin.get_time_in_air(), coin.get_time_in_air() / (num_steps - 1)):
-	obj.location.x = coin.get_x_at_time(t)
-	obj.location.z = coin.get_y_at_time(t)
+	#obj.location.x = coin.get_x_at_time(t)
+	#obj.location.z = coin.get_y_at_time(t)
+	obj.location = Vector((coin.get_x_at_time(t), coin.get_z_at_time(t), coin.get_y_at_time(t)))
 	obj.keyframe_insert("location", frame=i)
-	obj.rotation_euler.y = coin.get_rotation_at_time(t)
-	#obj.rotation_euler = Euler((0.3, 0.3, 0.4), 'XYZ')
+	#obj.rotation_euler.y = coin.get_rotation_at_time(t)
+	obj.rotation_euler = Euler((coin.get_x_rotation_at_time(t), 0, coin.get_z_rotation_at_time(t)), 'YZX')
 	obj.keyframe_insert("rotation_euler", frame=i)
 
 	i += 1
 
 # x and y rotation
-"""
