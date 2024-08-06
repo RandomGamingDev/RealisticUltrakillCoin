@@ -43,6 +43,9 @@ class Vec3:
 	def get_xz(self):
 		return Vec2(self.x, self.z)
 
+	def get_zy(self):
+		return Vec2(self.z, self.y)
+
 	def __add__(self, o):
 		return Vec3(self.x + o.x, self.y + o.y, self.z + o.z)
 
@@ -56,12 +59,12 @@ class Coin:
 	def __init__(
 			self,
 			gravity: float, # m/s^2
-			starting_pos: Vec2, # Vec2<m>
-			starting_vel: Vec2, # Vec2<m/s>
-			starting_angle: Vec2, # r
-			shooter_pos: Vec2, # Vec2<m>
+			starting_pos: Vec3, # Vec3<m>
+			starting_vel: Vec3, # Vec3<m/s>
+			starting_angle: Vec3, # r
+			shooter_pos: Vec3, # Vec3<m>
 			coin_reflection_x: float, # m
-			target_pos: Vec2 # Vec2<m>
+			target_pos: Vec3 # Vec3<m>
 	) -> None:
 		self.gravity = gravity
 		self.i_pos = starting_pos
@@ -85,8 +88,14 @@ class Coin:
 	def get_x_traveled(self) -> float: # m
 		return self.i_vel.x * self.get_time_in_air()
 
+	def get_z_traveled(self) -> float: # m
+		return self.i_vel.z * self.get_time_in_air()
+
 	def get_x_at_time(self, t) -> float: # m
 		return t * self.i_vel.x + self.i_pos.x
+
+	def get_z_at_time(self, t) -> float: # m
+		return t * self.i_vel.z + self.i_pos.z
 
 	def get_y_at_time(self, t) -> float: # m
 		return self.i_pos.y + self.i_vel.y * t - 0.5 * self.gravity * t ** 2
@@ -94,35 +103,64 @@ class Coin:
 	def get_time_at_x(self, x) -> float: # m
 		return (x - self.i_pos.x) / self.i_vel.x
 
+	def get_time_at_z(self, z) -> float: # m
+		return (z - self.i_pos.z) / self.i_vel.z
+
 	def get_y_at_x(self, x) -> float: # m
 		return self.get_y_at_time(self.get_time_at_x(x))
 	
+	def get_y_at_z(self, z) -> float: # m
+		return self.get_y_at_time(self.get_time_at_z(z))
+
+	def get_z_at_x(self, x) -> float: # m
+		return self.get_z_at_time(self.get_time_at_x(x))
+
 	def get_y_at_reflection(self) -> float: # m
 		return self.get_y_at_x(self.reflection_x)
 	
-	def get_reflection_pos(self) -> Vec2: # m
-		return Vec2(self.reflection_x, self.get_y_at_reflection())
+	def get_z_at_reflection(self) -> float: # m
+		return self.get_z_at_x(self.reflection_x)
+
+	def get_reflection_pos(self) -> Vec3: # m
+		return Vec3(self.reflection_x, self.get_y_at_reflection(), self.get_z_at_reflection())
 
 	# Mirror Reflection
-	def get_laser_in_angle(self) -> float: # r
-		return (self.get_reflection_pos() - self.shooter_pos).get_angle()
+	def get_laser_in_x_angle(self) -> float: # r
+		return (self.get_reflection_pos() - self.shooter_pos).get_xy().get_angle()
 
-	def get_laser_out_angle(self) -> float: # r
-		return (self.target_pos - self.get_reflection_pos()).get_angle()
+	def get_laser_in_z_angle(self) -> float: # r
+		return (self.get_reflection_pos() - self.shooter_pos).get_zy().get_angle()
+
+	def get_laser_out_x_angle(self) -> float: # r
+		return (self.target_pos - self.get_reflection_pos()).get_xy().get_angle()
 	
-	def get_reflection_angle(self) -> float: # r
-		return (self.get_laser_out_angle() + self.get_laser_in_angle()) / 2
+	def get_laser_out_z_angle(self) -> float: # r
+		return (self.target_pos - self.get_reflection_pos()).get_zy().get_angle()
+
+	def get_reflection_x_angle(self) -> float: # r
+		return (self.get_laser_out_x_angle() + self.get_laser_in_x_angle()) / 2
 	
-	def get_i_angular_vel(self) -> float: # r / s
-		return self.i_vel.x ** 2 * (self.get_reflection_angle() - self.i_angle.x) / (self.reflection_x - self.i_pos.x)
+	def get_reflection_z_angle(self) -> float: # r
+		return (self.get_laser_out_z_angle() + self.get_laser_in_z_angle()) / 2
+
+	def get_i_x_angular_vel(self) -> float: # r / s
+		return self.i_vel.x ** 2 * (self.get_reflection_x_angle() - self.i_angle.x) / (self.reflection_x - self.i_pos.x)
+
+	def get_i_z_angular_vel(self) -> float: # r / s
+		return self.i_vel.z ** 2 * (self.get_reflection_z_angle() - self.i_angle.z) / (self.get_z_at_reflection() - self.i_pos.z)
 	
 	# Combined
-	def get_rotation_at_time(self, t) -> float: # r
-		return self.i_angle.x + t * self.get_i_angular_vel() / self.i_vel.x
+	def get_x_rotation_at_time(self, t) -> float: # r
+		return self.i_angle.x + t * self.get_i_x_angular_vel() / self.i_vel.x
+
+	def get_z_rotation_at_time(self, t) -> float: # r
+		return self.i_angle.z + t * self.get_i_z_angular_vel() / self.i_vel.z
 
 
 
-coin = Coin(9.8, Vec2(0.555, 1.964), Vec2(2.47, 3.062), Vec2(-4.5, 0), Vec2(0.403, 1.438), 2.12, Vec2(3.83, 1.425))
+coin = Coin(9.8, Vec3(0.555, 1.964, 0.555), Vec3(2.47, 3.062, 2.47), Vec3(-4.5, 0, -4.5), Vec3(0.403, 1.438, 0.403), 2.12, Vec3(3.83, 1.425, 3.83))
+print(coin.get_x_rotation_at_time(1))
+print(coin.get_z_rotation_at_time(1))
 
 """
 # get a reference to the currently active object
@@ -136,6 +174,7 @@ for t in f_range(0, coin.get_time_in_air(), coin.get_time_in_air() / (num_steps 
 	obj.location.z = coin.get_y_at_time(t)
 	obj.keyframe_insert("location", frame=i)
 	obj.rotation_euler.y = coin.get_rotation_at_time(t)
+	#obj.rotation_euler = Euler((0.3, 0.3, 0.4), 'XYZ')
 	obj.keyframe_insert("rotation_euler", frame=i)
 
 	i += 1
