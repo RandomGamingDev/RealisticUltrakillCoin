@@ -11,6 +11,19 @@ def f_range(start, stop, increment):
 		yield start
 		start += increment
 
+def create_line(start, end):
+    # Create a new mesh
+    mesh = bpy.data.meshes.new("LineMesh")
+    obj = bpy.data.objects.new("Line", mesh)
+    
+    # Set mesh vertices and edges
+    vertices = [start, end]
+    edges = [(0, 1)]
+    mesh.from_pydata(vertices, edges, [])
+
+    bpy.context.collection.objects.link(obj)
+    mesh.update()
+
 # quick 'n dirty vec classes
 class Vec2:
 	def __init__(self, x: float, y: float) -> None:
@@ -28,6 +41,11 @@ class Vec2:
 	
 	def __str__(self) -> str:
 		return f"({ self.x }, { self.y })"
+
+	def __iter__(self):
+		yield self.x
+		yield self.y
+
 class Vec3:
 	def __init__(self, x: float, y: float, z: float) -> None:
 		self.x = x
@@ -46,6 +64,9 @@ class Vec3:
 	def get_zy(self):
 		return Vec2(self.z, self.y)
 
+	def get_xzy(self):
+		return Vec3(self.x, self.z, self.y)
+
 	def __add__(self, o):
 		return Vec3(self.x + o.x, self.y + o.y, self.z + o.z)
 
@@ -54,6 +75,11 @@ class Vec3:
 	
 	def __str__(self) -> str:
 		return f"({ self.x }, { self.y }, { self.z })"
+
+	def __iter__(self):
+		yield self.x
+		yield self.y
+		yield self.z
 
 class Coin:
 	def __init__(
@@ -157,26 +183,36 @@ class Coin:
 		return self.i_angle.z + t * self.get_i_z_angular_vel() / self.i_vel.z
 
 
+coin = Coin(
+	gravity=9.8,
+	starting_pos=Vec3(0.555, 1.964, 0.555),
+	starting_vel=Vec3(2.47, 3.062, 2.47),
+	starting_angle=Vec3(-4.5, 0, -4.5),
+	shooter_pos=Vec3(0.403, 1.438, 3.403),
+	coin_reflection_x=2.12,
+	target_pos=Vec3(3.83, 1.425, 3.83)
+)
 
-coin = Coin(9.8, Vec3(0.555, 1.964, 0.555), Vec3(2.47, 3.062, 2.47), Vec3(-4.5, 0, -4.5), Vec3(0.403, 1.438, 0.403), 2.12, Vec3(3.83, 1.425, 3.83))
-#print(coin.get_x_rotation_at_time(1))
-#print(coin.get_z_rotation_at_time(1))
-
+#"""
 # get a reference to the currently active object
 obj = bpy.context.active_object.copy()
 bpy.context.collection.objects.link(obj)
 
+reflection_pos = (coin.reflection_x, coin.get_z_at_reflection(), coin.get_y_at_reflection())
+create_line(tuple(coin.shooter_pos.get_xzy()), reflection_pos)
+create_line(reflection_pos, tuple(coin.target_pos.get_xzy()))
 i = 1
 num_steps = 30
 for t in f_range(0, coin.get_time_in_air(), coin.get_time_in_air() / (num_steps - 1)):
-	#obj.location.x = coin.get_x_at_time(t)
-	#obj.location.z = coin.get_y_at_time(t)
 	obj.location = Vector((coin.get_x_at_time(t), coin.get_z_at_time(t), coin.get_y_at_time(t)))
 	obj.keyframe_insert("location", frame=i)
-	#obj.rotation_euler.y = coin.get_rotation_at_time(t)
 	obj.rotation_euler = Euler((coin.get_x_rotation_at_time(t), 0, coin.get_z_rotation_at_time(t)), 'YZX')
 	obj.keyframe_insert("rotation_euler", frame=i)
 
 	i += 1
-
-# x and y rotation
+# Check actual reflection
+obj.location = Vector(reflection_pos)
+obj.keyframe_insert("location", frame=i)
+obj.rotation_euler = Euler((coin.get_x_rotation_at_time(coin.get_time_at_x(coin.reflection_x)), 0, coin.get_z_rotation_at_time(coin.get_time_at_x(coin.reflection_x))), 'YZX')
+obj.keyframe_insert("rotation_euler", frame=i)
+#"""
