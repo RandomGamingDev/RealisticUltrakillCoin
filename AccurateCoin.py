@@ -1,8 +1,10 @@
 # give Python access to Blender's functionality
-import bpy
 import math
+#"""
+import bpy
 import mathutils
 from mathutils import Euler, Vector
+#"""
 
 in_range = lambda n, l, h: l <= n <= h or h <= n <= l
 
@@ -147,6 +149,9 @@ class Coin:
 	def get_z_at_reflection(self) -> float: # m
 		return self.get_z_at_x(self.reflection_x)
 
+	def get_time_at_reflection(self) -> float: # s
+		return self.get_time_at_x(self.reflection_x)
+
 	def get_reflection_pos(self) -> Vec3: # m
 		return Vec3(self.reflection_x, self.get_y_at_reflection(), self.get_z_at_reflection())
 
@@ -182,16 +187,20 @@ class Coin:
 	def get_z_rotation_at_time(self, t) -> float: # r
 		return self.i_angle.z + t * self.get_i_z_angular_vel() / self.i_vel.z
 
+def rotate_coin(obj, axis, angle):
+    obj.rotation_quaternion = mathutils.Quaternion(axis, angle) + obj.rotation_quaternion
 
 coin = Coin(
 	gravity=9.8,
-	starting_pos=Vec3(0.555, 1.964, 0.555),
+	starting_pos=Vec3(0.555, 1.964, 0.555), # Issue changing x changes both, but not z
 	starting_vel=Vec3(2.47, 3.062, 2.47),
 	starting_angle=Vec3(-4.5, 0, -4.5),
-	shooter_pos=Vec3(0.403, 1.438, 3.403),
+	shooter_pos=Vec3(3.403, 1.438, 3.403),
 	coin_reflection_x=2.12,
-	target_pos=Vec3(3.83, 1.425, 3.83)
+	target_pos=Vec3(3.83, 1.425, 3.83) # 0.
 )
+#time = coin.get_time_at_x(coin.reflection_x)
+#print((math.degrees(coin.get_x_rotation_at_time(coin.get_time_at_reflection())), math.degrees(coin.get_z_rotation_at_time(coin.get_time_at_reflection())), 0))
 
 #"""
 # get a reference to the currently active object
@@ -201,18 +210,25 @@ bpy.context.collection.objects.link(obj)
 reflection_pos = (coin.reflection_x, coin.get_z_at_reflection(), coin.get_y_at_reflection())
 create_line(tuple(coin.shooter_pos.get_xzy()), reflection_pos)
 create_line(reflection_pos, tuple(coin.target_pos.get_xzy()))
-i = 1
+i = 0
 num_steps = 30
 for t in f_range(0, coin.get_time_in_air(), coin.get_time_in_air() / (num_steps - 1)):
 	obj.location = Vector((coin.get_x_at_time(t), coin.get_z_at_time(t), coin.get_y_at_time(t)))
 	obj.keyframe_insert("location", frame=i)
-	obj.rotation_euler = Euler((coin.get_x_rotation_at_time(t), 0, coin.get_z_rotation_at_time(t)), 'YZX')
-	obj.keyframe_insert("rotation_euler", frame=i)
+	obj.rotation_mode = 'QUATERNION'
+	obj.rotation_quaternion = mathutils.Quaternion((1, 0, 0, 0))
+	#obj.rotation_euler = Euler((coin.get_x_rotation_at_time(t), 0, coin.get_z_rotation_at_time(t)), 'YZX')
+	rotate_coin(obj, (0, 1, 0), coin.get_x_rotation_at_time(t))
+	rotate_coin(obj, (1, 0, 0), coin.get_z_rotation_at_time(t))
+	obj.keyframe_insert("rotation_quaternion", frame=i)
 
 	i += 1
 # Check actual reflection
 obj.location = Vector(reflection_pos)
 obj.keyframe_insert("location", frame=i)
-obj.rotation_euler = Euler((coin.get_x_rotation_at_time(coin.get_time_at_x(coin.reflection_x)), 0, coin.get_z_rotation_at_time(coin.get_time_at_x(coin.reflection_x))), 'YZX')
-obj.keyframe_insert("rotation_euler", frame=i)
+obj.rotation_mode = 'QUATERNION'
+obj.rotation_quaternion = mathutils.Quaternion((1, 0, 0, 0))
+rotate_coin(obj, (0, 1, 0), -coin.get_x_rotation_at_time(coin.get_time_at_reflection()) / 2)
+rotate_coin(obj, (1, 0, 0), coin.get_z_rotation_at_time(coin.get_time_at_reflection()))
+obj.keyframe_insert("rotation_quaternion", frame=i)
 #"""
