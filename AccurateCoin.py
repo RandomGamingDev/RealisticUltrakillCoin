@@ -192,12 +192,12 @@ def rotate_coin(obj, axis, angle):
 
 coin = Coin(
 	gravity=9.8,
-	starting_pos=Vec3(0.555, 1.964, 0.555), # Issue changing x changes both, but not z
+	starting_pos=Vec3(0.555, 1.964, 0.555),
 	starting_vel=Vec3(2.47, 3.062, 2.47),
 	starting_angle=Vec3(-4.5, 0, -4.5),
-	shooter_pos=Vec3(3.403, 1.438, 3.403),
+	shooter_pos=Vec3(0.403, 1.438, 0.403),
 	coin_reflection_x=2.12,
-	target_pos=Vec3(3.83, 1.425, 3.83) # 0.
+	target_pos=Vec3(0.83, 1.425, 0.83)
 )
 #time = coin.get_time_at_x(coin.reflection_x)
 #print((math.degrees(coin.get_x_rotation_at_time(coin.get_time_at_reflection())), math.degrees(coin.get_z_rotation_at_time(coin.get_time_at_reflection())), 0))
@@ -210,6 +210,14 @@ bpy.context.collection.objects.link(obj)
 reflection_pos = (coin.reflection_x, coin.get_z_at_reflection(), coin.get_y_at_reflection())
 create_line(tuple(coin.shooter_pos.get_xzy()), reflection_pos)
 create_line(reflection_pos, tuple(coin.target_pos.get_xzy()))
+a = Vector(tuple(coin.shooter_pos.get_xzy())) - Vector(reflection_pos)
+b = Vector(tuple(coin.target_pos.get_xzy())) - Vector(reflection_pos)
+
+#test = Vector(a).cross(b)
+test = (a + b) / 2
+create_line(reflection_pos, tuple(Vec3(*reflection_pos) + test))
+
+#"""
 i = 0
 num_steps = 30
 for t in f_range(0, coin.get_time_in_air(), coin.get_time_in_air() / (num_steps - 1)):
@@ -227,8 +235,6 @@ for t in f_range(0, coin.get_time_in_air(), coin.get_time_in_air() / (num_steps 
 obj.location = Vector(reflection_pos)
 obj.keyframe_insert("location", frame=i)
 obj.rotation_mode = 'QUATERNION'
-obj.rotation_quaternion = mathutils.Quaternion((1, 0, 0, 0))
-rotate_coin(obj, (0, 1, 0), -coin.get_x_rotation_at_time(coin.get_time_at_reflection()) / 2)
-rotate_coin(obj, (1, 0, 0), coin.get_z_rotation_at_time(coin.get_time_at_reflection()))
+obj.rotation_quaternion = test.to_track_quat('Z','Y')
 obj.keyframe_insert("rotation_quaternion", frame=i)
 #"""
