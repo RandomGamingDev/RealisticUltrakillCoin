@@ -1,10 +1,8 @@
 # give Python access to Blender's functionality
 import math
-#"""
 import bpy
 import mathutils
 from mathutils import Euler, Vector
-#"""
 
 in_range = lambda n, l, h: l <= n <= h or h <= n <= l
 
@@ -168,11 +166,19 @@ class Coin:
 	def get_laser_out_z_angle(self) -> float: # r
 		return (self.target_pos - self.get_reflection_pos()).get_zy().get_angle()
 
+	def get_in_vec(self) -> Vector:
+		reflection_pos = (self.reflection_x, self.get_z_at_reflection(), self.get_y_at_reflection())
+		return Vector(tuple(self.shooter_pos.get_xzy())) - Vector(reflection_pos)
+
+	def get_out_vec(self) -> Vector:
+		reflection_pos = (self.reflection_x, self.get_z_at_reflection(), self.get_y_at_reflection())
+		return Vector(tuple(self.target_pos.get_xzy())) - Vector(reflection_pos)
+
 	def get_reflection_x_angle(self) -> float: # r
-		return (self.get_laser_out_x_angle() + self.get_laser_in_x_angle()) / 2
+		return ((self.get_in_vec() + self.get_out_vec()) / 2).to_track_quat('Z','Y').to_euler().x
 	
 	def get_reflection_z_angle(self) -> float: # r
-		return (self.get_laser_out_z_angle() + self.get_laser_in_z_angle()) / 2
+		return ((self.get_in_vec() + self.get_out_vec()) / 2).to_track_quat('Z','Y').to_euler().z
 
 	def get_i_x_angular_vel(self) -> float: # r / s
 		return self.i_vel.x ** 2 * (self.get_reflection_x_angle() - self.i_angle.x) / (self.reflection_x - self.i_pos.x)
@@ -199,10 +205,7 @@ coin = Coin(
 	coin_reflection_x=2.12,
 	target_pos=Vec3(0.83, 1.425, 0.83)
 )
-#time = coin.get_time_at_x(coin.reflection_x)
-#print((math.degrees(coin.get_x_rotation_at_time(coin.get_time_at_reflection())), math.degrees(coin.get_z_rotation_at_time(coin.get_time_at_reflection())), 0))
 
-#"""
 # get a reference to the currently active object
 obj = bpy.context.active_object.copy()
 bpy.context.collection.objects.link(obj)
@@ -212,29 +215,22 @@ create_line(tuple(coin.shooter_pos.get_xzy()), reflection_pos)
 create_line(reflection_pos, tuple(coin.target_pos.get_xzy()))
 a = Vector(tuple(coin.shooter_pos.get_xzy())) - Vector(reflection_pos)
 b = Vector(tuple(coin.target_pos.get_xzy())) - Vector(reflection_pos)
-
-#test = Vector(a).cross(b)
 test = (a + b) / 2
 create_line(reflection_pos, tuple(Vec3(*reflection_pos) + test))
 
-#"""
+obj.rotation_mode = 'QUATERNION'
 i = 0
 num_steps = 30
 for t in f_range(0, coin.get_time_in_air(), coin.get_time_in_air() / (num_steps - 1)):
 	obj.location = Vector((coin.get_x_at_time(t), coin.get_z_at_time(t), coin.get_y_at_time(t)))
 	obj.keyframe_insert("location", frame=i)
-	obj.rotation_mode = 'QUATERNION'
-	obj.rotation_quaternion = mathutils.Quaternion((1, 0, 0, 0))
-	#obj.rotation_euler = Euler((coin.get_x_rotation_at_time(t), 0, coin.get_z_rotation_at_time(t)), 'YZX')
-	rotate_coin(obj, (0, 1, 0), coin.get_x_rotation_at_time(t))
-	rotate_coin(obj, (1, 0, 0), coin.get_z_rotation_at_time(t))
+	obj.rotation_quaternion = Euler((coin.get_x_rotation_at_time(t), 0, coin.get_z_rotation_at_time(t)), 'XYZ').to_quaternion()
 	obj.keyframe_insert("rotation_quaternion", frame=i)
 
 	i += 1
+
 # Check actual reflection
 obj.location = Vector(reflection_pos)
 obj.keyframe_insert("location", frame=i)
-obj.rotation_mode = 'QUATERNION'
 obj.rotation_quaternion = test.to_track_quat('Z','Y')
 obj.keyframe_insert("rotation_quaternion", frame=i)
-#"""
