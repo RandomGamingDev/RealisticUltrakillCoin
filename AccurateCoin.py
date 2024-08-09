@@ -222,7 +222,7 @@ create_line(reflection_pos, tuple(Vec3(*reflection_pos) + test))
 
 obj.rotation_mode = 'QUATERNION'
 i = 0
-num_steps = 30
+num_steps = 512
 for t in f_range(0, coin.get_time_in_air(), coin.get_time_in_air() / (num_steps - 1)):
 	obj.location = Vector((coin.get_x_at_time(t), coin.get_z_at_time(t), coin.get_y_at_time(t)))
 	obj.keyframe_insert("location", frame=i)
